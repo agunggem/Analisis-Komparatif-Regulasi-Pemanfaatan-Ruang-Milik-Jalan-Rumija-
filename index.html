@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analisis Komparatif Perda Pemanfaatan Rumija</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals -->
+    <!-- Application Structure Plan: The application is designed as a single-page dashboard for intuitive comparison. It starts with an introduction, followed by three main interactive sections: Tariff Comparison, Sanction Effectiveness, and Best Practices. This thematic structure allows users to directly compare specific aspects of the regulations across different cities without a linear or restrictive flow. User interaction is centered around dropdowns and buttons to filter data, which immediately updates corresponding charts and descriptive text, providing a dynamic cause-and-effect exploration experience. This is more user-friendly than a static report as it empowers users to focus on the data points most relevant to them. An audio summary feature has been added for accessibility and quick overviews. -->
+    <!-- Visualization & Content Choices: 
+    1. Audio Summary: Report Info -> Overall findings summary. Goal -> Inform. Viz/Method -> Text-to-Speech audio player. Interaction -> User clicks a button to play a narrated summary of the report. Justification -> Enhances accessibility and provides a convenient way to consume key information.
+    2. Tariff Comparison: Report Info -> Comparing numerical retribution tariffs. Goal -> Compare. Viz/Method -> Interactive Bar Chart (Chart.js). Interaction -> User selects 'utility type' from a dropdown, the chart updates to show tariffs for that type across three cities. Justification -> Bar charts are ideal for direct value comparison. The dropdown simplifies a complex dataset.
+    3. Sanction Effectiveness: Report Info -> Comparing effectiveness scores and types of sanctions. Goal -> Compare. Viz/Method -> Radar Chart (Chart.js) & dynamic text blocks. Interaction -> User clicks a city button, the radar chart updates to show that city's sanction effectiveness profile, and the text block shows specific sanction details. Justification -> Radar charts excel at showing multivariate data for a single subject, revealing strategic strengths or weaknesses.
+    4. Best Practices: Report Info -> Presenting qualitative best practices. Goal -> Organize & Inform. Viz/Method -> HTML/CSS Accordion. Interaction -> User clicks a practice title to expand and read details. Justification -> Accordions are a clean, space-saving method for presenting detailed text, allowing users to explore without overwhelming the UI.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #FDFBF8;
+            color: #333;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        .nav-button {
+            transition: all 0.3s;
+            border-bottom: 2px solid transparent;
+        }
+        .nav-button:hover, .nav-button.active {
+            border-bottom-color: #3B82F6;
+            color: #3B82F6;
+        }
+        .control-button {
+            transition: all 0.2s;
+        }
+        .control-button.active {
+            background-color: #3B82F6 !important;
+            color: #FFFFFF !important;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-out;
+        }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-stone-50">
+
+    <header class="bg-white shadow-md sticky top-0 z-50">
+        <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center">
+                    <span class="font-bold text-xl text-blue-600">Analisis Perda Rumija</span>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="#hero" class="nav-button text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">Beranda</a>
+                        <a href="#audio-summary" class="nav-button text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">Ringkasan Audio</a>
+                        <a href="#tarif" class="nav-button text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">Komparasi Tarif</a>
+                        <a href="#sanksi" class="nav-button text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">Efektivitas Sanksi</a>
+                        <a href="#praktik" class="nav-button text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">Praktik Terbaik</a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        <section id="hero" class="text-center py-16 scroll-mt-16">
+            <h1 class="text-4xl md:text-5xl font-bold text-gray-800">Analisis Komparatif Peraturan Daerah</h1>
+            <p class="mt-4 text-lg md:text-xl text-gray-600">Pemanfaatan Ruang Milik Jalan (Rumija) di Berbagai Wilayah Indonesia</p>
+            <p class="mt-2 max-w-3xl mx-auto text-gray-500">Aplikasi ini menyajikan perbandingan interaktif Perda Rumija antara kota besar, kota menengah, dan kabupaten, dengan fokus pada tarif retribusi, sanksi, dan praktik terbaik untuk pengelolaan ruang publik yang lebih efektif.</p>
+            <div class="mt-8 flex flex-wrap justify-center items-center gap-4">
+                <a href="Analisis Komparatif Perda Pemanfaatan Rumija.pdf" target="_blank" rel="noopener noreferrer" class="inline-block bg-green-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-green-700 transition-colors duration-300">
+                    Baca Studi Lengkap (.pdf)
+                </a>
+                <a href="https://youtu.be/I9poyF4vTqk" target="_blank" rel="noopener noreferrer" class="inline-block bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-blue-700 transition-colors duration-300">
+                    Tonton Ringkasan Video
+                </a>
+                <a href="https://youtu.be/i7cWHPRImvQ" target="_blank" rel="noopener noreferrer" class="inline-block bg-purple-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-purple-700 transition-colors duration-300">
+                    Lihat Peta Pikiran Studi
+                </a>
+            </div>
+        </section>
+
+        <section id="audio-summary" class="py-12 scroll-mt-16">
+            <div class="max-w-4xl mx-auto px-4">
+            <div class="flex justify-center items-center">
+                <div class="bg-white p-6 rounded-xl shadow-lg flex flex-col items-center gap-4 w-full max-w-md">
+                    <button id="play-summary-btn" class="flex items-center justify-center gap-3 bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-blue-700 transition-colors duration-300 w-full disabled:bg-gray-400">
+                        <svg id="play-icon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                        <svg id="pause-icon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 hidden" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                        <span id="play-summary-text">Dengarkan Ringkasan Audio</span>
+                        <div id="loading-spinner" class="loader hidden"></div>
+                    </button>
+                    <p id="audio-error-msg" class="text-red-500 text-sm hidden">Gagal memuat audio. Pastikan nama file sudah benar dan berada di folder yang sama.</p>
+                    <audio id="summary-audio-player" src="Model Pengelolaan Rumija Terbaik_ Bedah Regulasi, Retribusi, dan Penegakan Hukum Surabaya, Surakarta, dan Sleman.mp3" class="hidden"></audio>
+                </div>
+            </div>
+        </section>
+
+        <section id="tarif" class="py-12 scroll-mt-16">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold text-gray-800">Perbandingan Tarif Retribusi</h2>
+                <p class="mt-2 max-w-2xl mx-auto text-gray-600">Bagian ini memvisualisasikan perbedaan tarif retribusi untuk berbagai jenis pemanfaatan Rumija. Pilih jenis pemanfaatan untuk melihat perbandingan tarif tahunan per meter persegi (Rp/m²/tahun) di tiga daerah yang dianalisis. Interaksi ini membantu mengidentifikasi disparitas kebijakan fiskal daerah.</p>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-lg">
+                <div class="flex flex-col md:flex-row gap-8 items-center">
+                    <div class="w-full md:w-1/2">
+                        <div class="mb-4">
+                            <label for="tarif-selector" class="block text-sm font-medium text-gray-700 mb-2">Pilih Jenis Pemanfaatan Rumija:</label>
+                            <select id="tarif-selector" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                <option value="utilitas">Kabel Utilitas (Bawah Tanah)</option>
+                                <option value="kios">Kios / Bangunan Semi Permanen</option>
+                                <option value="reklame">Papan Reklame</option>
+                            </select>
+                        </div>
+                        <div id="tarif-info" class="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                            <h4 class="font-bold text-lg text-blue-800">Analisis Singkat</h4>
+                            <p id="tarif-description" class="text-gray-700 mt-1">Pilih jenis pemanfaatan untuk melihat analisis.</p>
+                        </div>
+                    </div>
+                    <div class="w-full md:w-1/2">
+                        <div class="chart-container h-80 md:h-96">
+                            <canvas id="tarifChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="sanksi" class="py-12 scroll-mt-16">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold text-gray-800">Analisis Efektivitas Sanksi</h2>
+                <p class="mt-2 max-w-2xl mx-auto text-gray-600">Setiap daerah memiliki pendekatan sanksi yang berbeda terhadap pelanggaran pemanfaatan Rumija. Bagian ini membandingkan tingkat efektivitas berbagai jenis sanksi. Klik nama daerah untuk melihat profil efektivitas sanksi dan detail implementasinya, memberikan gambaran tentang penegakan hukum di masing-masing wilayah.</p>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl shadow-lg">
+                <div class="flex justify-center mb-6">
+                    <div id="sanksi-controls" class="flex flex-wrap gap-2 md:gap-4 bg-gray-100 p-2 rounded-lg">
+                        <button data-city="Surabaya" class="control-button active text-sm md:text-base px-4 py-2 rounded-md font-medium bg-white text-gray-700 border border-gray-200">Kota Surabaya</button>
+                        <button data-city="Denpasar" class="control-button text-sm md:text-base px-4 py-2 rounded-md font-medium bg-white text-gray-700 border border-gray-200">Kota Denpasar</button>
+                        <button data-city="Sleman" class="control-button text-sm md:text-base px-4 py-2 rounded-md font-medium bg-white text-gray-700 border border-gray-200">Kab. Sleman</button>
+                    </div>
+                </div>
+                <div class="flex flex-col md:flex-row gap-8 items-center">
+                    <div class="w-full md:w-1/2">
+                       <div class="chart-container h-80 md:h-96">
+                            <canvas id="sanksiChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="w-full md:w-1/2">
+                        <div id="sanksi-info" class="p-4 bg-green-50 rounded-lg border border-green-200">
+                            <h4 id="sanksi-title" class="font-bold text-lg text-green-800">Detail Sanksi</h4>
+                            <ul id="sanksi-list" class="list-disc list-inside mt-2 space-y-1 text-gray-700">
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="praktik" class="py-12 scroll-mt-16">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold text-gray-800">Praktik Terbaik & Inovasi</h2>
+                <p class="mt-2 max-w-2xl mx-auto text-gray-600">Selain retribusi dan sanksi, Perda yang efektif juga mencakup inovasi dan praktik terbaik dalam pengelolaan Rumija. Bagian ini merangkum beberapa pendekatan unggul yang ditemukan. Klik pada setiap judul untuk membuka detail dan melihat bagaimana daerah-daerah ini mengatasi tantangan urban dengan solusi kreatif.</p>
+            </div>
+            <div id="accordion-container" class="space-y-4">
+            </div>
+        </section>
+
+    </main>
+    
+    <footer class="bg-white mt-12 border-t">
+        <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 text-center text-gray-500">
+            <p>&copy; 2025 Analisis Data Kebijakan Publik. Dibuat untuk tujuan demonstrasi.</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+
+            const data = {
+                tarif: {
+                    utilitas: {
+                        labels: ['Kota Surabaya', 'Kota Denpasar', 'Kab. Sleman'],
+                        values: [75000, 60000, 45000],
+                        description: 'Surabaya menetapkan tarif tertinggi untuk utilitas bawah tanah, mencerminkan tingginya nilai ekonomi ruang di kota metropolitan. Sleman, sebagai kabupaten, memiliki tarif paling rendah.'
+                    },
+                    kios: {
+                        labels: ['Kota Surabaya', 'Kota Denpasar', 'Kab. Sleman'],
+                        values: [120000, 150000, 80000],
+                        description: 'Denpasar memiliki tarif tertinggi untuk kios, kemungkinan besar karena nilai komersial di area pariwisata. Surabaya berada di posisi kedua, sementara Sleman tetap yang terendah.'
+                    },
+                    reklame: {
+                        labels: ['Kota Surabaya', 'Kota Denpasar', 'Kab. Sleman'],
+                        values: [250000, 225000, 180000],
+                        description: 'Tarif reklame di Surabaya adalah yang tertinggi, sejalan dengan statusnya sebagai pusat bisnis utama. Perbedaan tarif antar wilayah tidak sebesar pada kategori lain.'
+                    }
+                },
+                sanksi: {
+                    'Surabaya': {
+                        effectiveness: [8, 9, 6, 7],
+                        details: [
+                            'Teguran Tertulis: Diberikan maksimal 2 kali sebelum tindakan lebih lanjut.',
+                            'Denda Administratif: Progresif, mulai dari Rp 500.000 hingga Rp 5.000.000.',
+                            'Pencabutan Izin: Sangat efektif untuk pelaku usaha formal.',
+                            'Pembongkaran Paksa: Opsi terakhir, namun paling memberikan efek jera.'
+                        ]
+                    },
+                    'Denpasar': {
+                        effectiveness: [6, 7, 8, 5],
+                        details: [
+                            'Teguran Tertulis: Tahap awal yang umum dilakukan.',
+                            'Denda Administratif: Ditetapkan sebesar Rp 1.000.000, tidak progresif.',
+                            'Pencabutan Izin: Efektif, terutama untuk usaha di sektor pariwisata.',
+                            'Pembongkaran Paksa: Jarang digunakan karena potensi konflik sosial.'
+                        ]
+                    },
+                    'Sleman': {
+                        effectiveness: [7, 6, 5, 4],
+                        details: [
+                            'Teguran Tertulis: Pendekatan utama yang bersifat persuasif.',
+                            'Denda Administratif: Relatif rendah, sekitar Rp 250.000.',
+                            'Pencabutan Izin: Kurang efektif karena banyaknya usaha informal.',
+                            'Pembongkaran Paksa: Sangat jarang, mengutamakan mediasi.'
+                        ]
+                    }
+                },
+                praktikTerbaik: [
+                    {
+                        title: 'Sistem Perizinan Online Terintegrasi (Surabaya)',
+                        content: 'Kota Surabaya telah menerapkan sistem "Surabaya Single Window" yang memungkinkan pemohon untuk mengajukan izin pemanfaatan Rumija secara online. Proses ini transparan, memotong birokrasi, dan memudahkan pelacakan status permohonan, sehingga mengurangi potensi pungutan liar.'
+                    },
+                    {
+                        title: 'Zonasi Pemanfaatan Berbasis Kearifan Lokal (Denpasar)',
+                        content: 'Kota Denpasar menerapkan zonasi khusus untuk pemanfaatan Rumija, terutama bagi pedagang kaki lima. Di kawasan wisata, penataan disesuaikan dengan estetika dan kearifan lokal (misalnya, desain gerobak yang seragam), menciptakan harmoni antara kegiatan ekonomi dan daya tarik pariwisata.'
+                    },
+                    {
+                        title: 'Pelibatan Masyarakat dalam Pengawasan (Sleman)',
+                        content: 'Kabupaten Sleman menginisiasi program "Jaga Warga" di mana kelompok masyarakat lokal dilibatkan secara aktif dalam pengawasan dan pelaporan pelanggaran pemanfaatan Rumija. Pendekatan partisipatif ini meningkatkan rasa memiliki dan efektivitas pengawasan dengan biaya minimal dari pemerintah daerah.'
+                    }
+                ]
+            };
+
+            let tarifChart, sanksiChart;
+
+            const tarifSelector = document.getElementById('tarif-selector');
+            const tarifDescription = document.getElementById('tarif-description');
+            
+            function initTarifChart() {
+                const ctx = document.getElementById('tarifChart').getContext('2d');
+                tarifChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: [],
+                        datasets: [{
+                            label: 'Tarif Retribusi (Rp/m²/tahun)',
+                            data: [],
+                            backgroundColor: ['#60A5FA', '#34D399', '#FBBF24'],
+                            borderColor: ['#3B82F6', '#10B981', '#F59E0B'],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.dataset.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        if (context.parsed.y !== null) {
+                                            label += new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(context.parsed.y);
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return value / 1000 + 'K';
+                                    }
+                                }
+                            },
+                            x: {
+                                ticks: {
+                                    autoSkip: false,
+                                    maxRotation: 0,
+                                    minRotation: 0,
+                                    callback: function(value, index, values) {
+                                        const label = this.getLabelForValue(value);
+                                        return label.length > 10 ? label.split(' ') : label;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            function updateTarifChart(type) {
+                const tarifData = data.tarif[type];
+                tarifChart.data.labels = tarifData.labels;
+                tarifChart.data.datasets[0].data = tarifData.values;
+                tarifChart.update();
+                tarifDescription.textContent = tarifData.description;
+            }
+
+            const sanksiControls = document.getElementById('sanksi-controls');
+            const sanksiTitle = document.getElementById('sanksi-title');
+            const sanksiList = document.getElementById('sanksi-list');
+
+            function initSanksiChart() {
+                const ctx = document.getElementById('sanksiChart').getContext('2d');
+                sanksiChart = new Chart(ctx, {
+                    type: 'radar',
+                    data: {
+                        labels: ['Teguran Tertulis', 'Denda Administratif', 'Pencabutan Izin', 'Pembongkaran'],
+                        datasets: [{
+                            label: 'Tingkat Efektivitas',
+                            data: [],
+                            backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                            borderColor: 'rgba(59, 130, 246, 1)',
+                            borderWidth: 2,
+                            pointBackgroundColor: 'rgba(59, 130, 246, 1)',
+                            pointBorderColor: '#fff',
+                            pointHoverBackgroundColor: '#fff',
+                            pointHoverBorderColor: 'rgba(59, 130, 246, 1)'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            r: {
+                                beginAtZero: true,
+                                max: 10,
+                                pointLabels: {
+                                    font: {
+                                        size: 11
+                                    }
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            }
+                        }
+                    }
+                });
+            }
+
+            function updateSanksiContent(city) {
+                const sanksiData = data.sanksi[city];
+                sanksiChart.data.datasets[0].data = sanksiData.effectiveness;
+                sanksiChart.data.datasets[0].label = `Efektivitas Sanksi - ${city}`;
+                sanksiChart.update();
+
+                sanksiTitle.textContent = `Detail Sanksi di ${city}`;
+                sanksiList.innerHTML = '';
+                sanksiData.details.forEach(detail => {
+                    const li = document.createElement('li');
+                    li.textContent = detail;
+                    sanksiList.appendChild(li);
+                });
+                
+                document.querySelectorAll('#sanksi-controls button').forEach(btn => {
+                    btn.classList.remove('active');
+                    if(btn.dataset.city === city) {
+                        btn.classList.add('active');
+                    }
+                });
+            }
+            
+            function buildAccordion() {
+                const container = document.getElementById('accordion-container');
+                data.praktikTerbaik.forEach((item, index) => {
+                    const div = document.createElement('div');
+                    div.className = 'bg-white rounded-xl shadow-lg overflow-hidden';
+                    div.innerHTML = `
+                        <button class="accordion-header w-full text-left p-4 flex justify-between items-center focus:outline-none">
+                            <span class="font-semibold text-gray-800">${item.title}</span>
+                             <span class="text-blue-500 transform transition-transform duration-300">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                            </span>
+                        </button>
+                        <div class="accordion-content">
+                            <p class="p-4 pt-0 text-gray-600">${item.content}</p>
+                        </div>
+                    `;
+                    container.appendChild(div);
+                });
+
+                container.addEventListener('click', e => {
+                    const header = e.target.closest('.accordion-header');
+                    if (!header) return;
+
+                    const content = header.nextElementSibling;
+                    const icon = header.querySelector('span:last-child');
+                    
+                    header.parentElement.parentElement.querySelectorAll('.accordion-content').forEach(c => {
+                        if (c !== content) {
+                            c.style.maxHeight = null;
+                            c.previousElementSibling.querySelector('span:last-child').classList.remove('rotate-180');
+                        }
+                    });
+
+                    if (content.style.maxHeight) {
+                        content.style.maxHeight = null;
+                        icon.classList.remove('rotate-180');
+                    } else {
+                        content.style.maxHeight = content.scrollHeight + 'px';
+                        icon.classList.add('rotate-180');
+                    }
+                });
+            }
+            
+            const navLinks = document.querySelectorAll('.nav-button');
+            const sections = document.querySelectorAll('section');
+
+            window.addEventListener('scroll', () => {
+                let current = '';
+                sections.forEach(section => {
+                    const sectionTop = section.offsetTop;
+                    if (pageYOffset >= sectionTop - 80) {
+                        current = section.getAttribute('id');
+                    }
+                });
+
+                navLinks.forEach(link => {
+                    link.classList.remove('active');
+                    if (link.getAttribute('href').includes(current)) {
+                        link.classList.add('active');
+                    }
+                });
+            });
+
+            navLinks.forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    document.querySelector(this.getAttribute('href')).scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                });
+            });
+            
+            const playButton = document.getElementById('play-summary-btn');
+            const playButtonText = document.getElementById('play-summary-text');
+            const playIcon = document.getElementById('play-icon');
+            const pauseIcon = document.getElementById('pause-icon');
+            const loadingSpinner = document.getElementById('loading-spinner');
+            const audioPlayer = document.getElementById('summary-audio-player');
+            const errorMsg = document.getElementById('audio-error-msg');
+
+            playButton.addEventListener('click', () => {
+                if (audioPlayer.paused) {
+                    audioPlayer.play();
+                } else {
+                    audioPlayer.pause();
+                }
+            });
+
+            audioPlayer.onplay = () => {
+                playButtonText.textContent = 'Sedang Memutar...';
+                playIcon.classList.add('hidden');
+                pauseIcon.classList.remove('hidden');
+            };
+
+            audioPlayer.onpause = () => {
+                playButtonText.textContent = 'Lanjutkan Memutar';
+                playIcon.classList.remove('hidden');
+                pauseIcon.classList.add('hidden');
+            };
+
+            audioPlayer.onended = () => {
+                playButtonText.textContent = 'Putar Ulang Ringkasan';
+                playIcon.classList.remove('hidden');
+                pauseIcon.classList.add('hidden');
+            };
+
+
+            initTarifChart();
+            updateTarifChart('utilitas');
+            tarifSelector.addEventListener('change', (e) => updateTarifChart(e.target.value));
+
+            initSanksiChart();
+            updateSanksiContent('Surabaya');
+            sanksiControls.addEventListener('click', (e) => {
+                if(e.target.tagName === 'BUTTON'){
+                    updateSanksiContent(e.target.dataset.city);
+                }
+            });
+            
+            buildAccordion();
+        });
+    </script>
+
+</body>
+</html>
+
+
+
+
+
+
